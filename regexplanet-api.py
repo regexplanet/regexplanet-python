@@ -10,12 +10,27 @@ import webapp2
 
 class TestPage(webapp2.RequestHandler):
 	def get(self):
+
+		retVal = self.doTest()
+
 		self.response.headers['Content-Type'] = 'text/plain'
+
+		callback = self.request.get('callback')
+		if len(callback) == 0 or re.match("[a-zA-Z][-a-zA-Z0-9_]*$", callback) is None:
+			self.response.out.write(retVal)
+		else:
+			self.response.out.write(callback)
+			self.response.out.write("(")
+			self.response.out.write(retVal)
+			self.response.out.write(");")
+
+
+
+	def doTest(self):
 
 		regex = self.request.get('regex')
 		if len(regex) == 0:
-			self.response.out.write(json.dumps({"success": False, "message": "no regular expression to test"}))
-			return
+			return json.dumps({"success": False, "message": "no regular expression to test"})
 
 		replacement = self.request.get('replacement')
 		inputs = self.request.get_all('input')
@@ -184,14 +199,7 @@ class TestPage(webapp2.RequestHandler):
 		html.append('\t</tbody>\n')
 		html.append('</table>\n')
 
-		callback = self.request.get('callback')
-		if len(callback) == 0 or re.match("[a-zA-Z][-a-zA-Z0-9_]*$", callback) is None:
-			self.response.out.write(json.dumps({"success": True, "html": "".join(html)}))
-		else:
-			self.response.out.write(callback)
-			self.response.out.write("(")
-			self.response.out.write(json.dumps({"success": True, "html": "".join(html)}))
-			self.response.out.write(");")
+		return json.dumps({"success": True, "html": "".join(html)})
 
 
 
