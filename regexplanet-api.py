@@ -5,8 +5,60 @@
 
 import cgi
 import json
+import platform
 import re
+import sysconfig
+import sys
 import webapp2
+
+def add_if_exists(obj, key, value):
+	if value:
+		obj[key] = value
+
+class StatusPage(webapp2.RequestHandler):
+	def get(self):
+
+		retVal = {}
+		retVal["success"] = True
+		retVal["message"] = "OK"
+		add_if_exists(retVal, "platform.machine()", platform.machine())
+		add_if_exists(retVal, "platform.node()", platform.node())
+		#IOError: add_if_exists(retVal, "platform.platform()", platform.platform())
+		add_if_exists(retVal, "platform.processor()", platform.processor())
+		add_if_exists(retVal, "platform.python_branch()", platform.python_branch())
+		add_if_exists(retVal, "platform.python_build()", platform.python_build())
+		add_if_exists(retVal, "platform.python_compiler()", platform.python_compiler())
+		add_if_exists(retVal, "platform.python_implementation()", platform.python_implementation())
+		add_if_exists(retVal, "platform.python_version()", platform.python_version())
+		add_if_exists(retVal, "platform.python_revision()", platform.python_revision())
+		add_if_exists(retVal, "platform.release()", platform.release())
+		add_if_exists(retVal, "platform.system()", platform.system())
+		add_if_exists(retVal, "platform.version()", platform.version())
+		add_if_exists(retVal, "platform.uname()", platform.uname())
+		add_if_exists(retVal, "sysconfig.get_platform()", sysconfig.get_platform())
+		add_if_exists(retVal, "sysconfig.get_python_version()", sysconfig.get_python_version())
+		add_if_exists(retVal, "sys.byteorder", sys.byteorder)
+		add_if_exists(retVal, "sys.copyright", sys.copyright)
+		add_if_exists(retVal, "sys.getdefaultencoding()", sys.getdefaultencoding())
+		add_if_exists(retVal, "sys.getfilesystemencoding()", sys.getfilesystemencoding())
+		add_if_exists(retVal, "sys.maxint", sys.maxint)
+		add_if_exists(retVal, "sys.maxsize", sys.maxsize)
+		add_if_exists(retVal, "sys.maxunicode", sys.maxunicode)
+		add_if_exists(retVal, "sys.version", sys.version)
+
+		self.response.headers['Content-Type'] = 'text/plain'
+
+		callback = self.request.get('callback')
+		if len(callback) == 0 or re.match("[a-zA-Z][-a-zA-Z0-9_]*$", callback) is None:
+			self.response.out.write(json.dumps(retVal, separators=(',', ':')))
+		else:
+			self.response.out.write(callback)
+			self.response.out.write("(")
+			self.response.out.write(json.dumps(retVal, separators=(',', ':')))
+			self.response.out.write(");")
+
+	def post(self):
+		self.get()
 
 class TestPage(webapp2.RequestHandler):
 	def get(self):
@@ -24,7 +76,8 @@ class TestPage(webapp2.RequestHandler):
 			self.response.out.write(retVal)
 			self.response.out.write(");")
 
-
+	def post(self):
+		self.get()
 
 	def doTest(self):
 
@@ -201,15 +254,17 @@ class TestPage(webapp2.RequestHandler):
 
 		return json.dumps({"success": True, "html": "".join(html)})
 
-
-
 class MainPage(webapp2.RequestHandler):
 	def get(self):
 		self.response.headers['Content-Type'] = 'text/plain'
 		self.response.out.write('Hello, World!')
 
-app = webapp2.WSGIApplication([('/', MainPage), ('/test.json', TestPage) ],
-							  debug=True)
+app = webapp2.WSGIApplication(	[
+									('/', MainPage),
+									('/status.json', StatusPage),
+									('/test.json', TestPage)
+								],
+								debug=True)
 
 
 
