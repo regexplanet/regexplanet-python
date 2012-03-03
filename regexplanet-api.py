@@ -66,6 +66,9 @@ class TestPage(webapp2.RequestHandler):
 		retVal = self.doTest()
 
 		self.response.headers['Content-Type'] = 'text/plain'
+		self.response.headers['Access-Control-Allow-Origin'] = '*'
+		self.response.headers['Access-Control-Allow-Methods'] = 'POST, GET'
+		self.response.headers['Access-Control-Max-Age'] = '604800' # 1 week
 
 		callback = self.request.get('callback')
 		if len(callback) == 0 or re.match("[a-zA-Z][-a-zA-Z0-9_]*$", callback) is None:
@@ -75,6 +78,13 @@ class TestPage(webapp2.RequestHandler):
 			self.response.out.write("(")
 			self.response.out.write(retVal)
 			self.response.out.write(");")
+
+	def options(self):
+		self.response.headers['Content-Type'] = 'text/plain'
+		self.response.headers['Access-Control-Allow-Origin'] = '*'
+		self.response.headers['Access-Control-Allow-Methods'] = 'POST, GET'
+		self.response.headers['Access-Control-Max-Age'] = '604800' # 1 week
+		self.response.out.write('Yes, CORS is allowed!')
 
 	def post(self):
 		self.get()
@@ -112,7 +122,7 @@ class TestPage(webapp2.RequestHandler):
 
 
 		html = []
-		html.append('<table class="bordered-table zebra-striped">\n')
+		html.append('<table class="table table-bordered table-striped bordered-table zebra-striped" style="width:auto;">\n')
 		html.append('\t<tbody>\n')
 
 		html.append('\t\t<tr>\n')
@@ -153,23 +163,24 @@ class TestPage(webapp2.RequestHandler):
 
 		pattern = re.compile(regex, flags)
 
-		html.append('\t\t<tr>\n')
-		html.append('\t\t\t<td>')
-		html.append('flags')
-		html.append('</td>\n')
-		html.append('\t\t\t<td>')
-		html.append(str(pattern.flags))
-		html.append('</td>\n')
-		html.append('\t\t</tr>\n')
+		if len(options) > 0:
+			html.append('\t\t<tr>\n')
+			html.append('\t\t\t<td>')
+			html.append('flags')
+			html.append('</td>\n')
+			html.append('\t\t\t<td>')
+			html.append(str(pattern.flags))
+			html.append('</td>\n')
+			html.append('\t\t</tr>\n')
 
-		html.append('\t\t<tr>\n')
-		html.append('\t\t\t<td>')
-		html.append('flags (as constants)')
-		html.append('</td>\n')
-		html.append('\t\t\t<td>')
-		html.append(cgi.escape("|".join(flagList)))
-		html.append('</td>\n')
-		html.append('\t\t</tr>\n')
+			html.append('\t\t<tr>\n')
+			html.append('\t\t\t<td>')
+			html.append('flags (as constants)')
+			html.append('</td>\n')
+			html.append('\t\t\t<td>')
+			html.append(cgi.escape("|".join(flagList)))
+			html.append('</td>\n')
+			html.append('\t\t</tr>\n')
 
 		html.append('\t\t<tr>\n')
 		html.append('\t\t\t<td>')
@@ -192,17 +203,17 @@ class TestPage(webapp2.RequestHandler):
 		html.append('\t</tbody>\n')
 		html.append('</table>\n')
 
-		html.append('<table class="bordered-table zebra-striped">\n')
+		html.append('<table class="table table-bordered table-striped bordered-table zebra-striped">\n')
 		html.append('\t<thead>\n')
 		html.append('\t\t<tr>\n')
-		html.append('\t\t\t<th>Test</th>\n')
+		html.append('\t\t\t<th style="text-align:center;">Test</th>\n')
 		html.append('\t\t\t<th>Target String</th>\n')
 		html.append('\t\t\t<th>findall()</th>\n')
-		html.append('\t\t\t<th>match()</th>\n')
-		html.append('\t\t\t<th>search()</th>\n')
+		#html.append('\t\t\t<th>match()</th>\n')
 		html.append('\t\t\t<th>split()</th>\n')
 		html.append('\t\t\t<th>sub()</th>\n')
-		for loop in range(0, pattern.groups - 1):
+		html.append('\t\t\t<th>search()</th>\n')
+		for loop in range(0, pattern.groups+1):
 			html.append('\t\t\t<th>group(')
 			html.append(str(loop))
 			html.append(')</th>\n');
@@ -218,8 +229,10 @@ class TestPage(webapp2.RequestHandler):
 			if len(test) == 0:
 				continue
 
+			matcher = pattern.search(test)
+
 			html.append('\t\t<tr>\n')
-			html.append('\t\t\t<td>')
+			html.append('\t\t\t<td style="text-align:center">')
 			html.append(str(loop+1))
 			html.append('</td>\n')
 
@@ -231,13 +244,9 @@ class TestPage(webapp2.RequestHandler):
 			html.append(cgi.escape(str(pattern.findall(test))))
 			html.append('</td>\n')
 
-			html.append('\t\t\t<td>')
-			html.append(cgi.escape(str(pattern.match(test))))
-			html.append('</td>\n')
-
-			html.append('\t\t\t<td>')
-			html.append(cgi.escape(str(pattern.search(test))))
-			html.append('</td>\n')
+			#html.append('\t\t\t<td>')
+			#html.append(cgi.escape(str(pattern.match(test))))
+			#html.append('</td>\n')
 
 			html.append('\t\t\t<td>')
 			html.append(cgi.escape(str(pattern.split(test))))
@@ -247,7 +256,35 @@ class TestPage(webapp2.RequestHandler):
 			html.append(cgi.escape(str(pattern.sub(replacement, test))))
 			html.append('</td>\n')
 
+			html.append('\t\t\t<td>')
+			if matcher:
+				html.append("pos=%d&nbsp;start()=%d&nbsp;end()=%d" % (matcher.pos, matcher.start(), matcher.end()))
+			html.append('</td>\n')
+
+			for group in range(0, pattern.groups+1):
+				html.append('\t\t\t<td>')
+				if matcher:
+					html.append(cgi.escape(matcher.group(group)))
+				html.append('</td>\n');
+
 			html.append('\t\t</tr>\n')
+
+			while matcher:
+				matcher = pattern.search(test, matcher.end())
+				if matcher:
+					html.append('\t\t<tr>\n');
+					html.append('\t\t\t<td colspan="5">&nbsp;</td>\n')
+					html.append('\t\t\t<td>')
+					html.append("pos=%d&nbsp;start()=%d&nbsp;end()=%d" % (matcher.pos, matcher.start(), matcher.end()))
+					html.append('</td>\n')
+
+					for group in range(0, pattern.groups+1):
+						html.append('\t\t\t<td>')
+						html.append(cgi.escape(matcher.group(group)))
+						html.append('</td>\n');
+
+					html.append('\t\t</tr>\n')
+
 
 		html.append('\t</tbody>\n')
 		html.append('</table>\n')
