@@ -293,8 +293,8 @@ class TestPage(webapp2.RequestHandler):
 
 class MainPage(webapp2.RequestHandler):
 	def get(self):
-		self.response.headers['Content-Type'] = 'text/plain'
-		self.response.out.write('Hello, World!')
+		self.response.headers['Location'] = 'http://www.regexplanet.com/advanced/python/index.html'
+		self.response.status = 307
 
 app = webapp2.WSGIApplication(	[
 									('/', MainPage),
