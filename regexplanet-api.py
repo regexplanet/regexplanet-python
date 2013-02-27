@@ -21,6 +21,7 @@ class StatusPage(webapp2.RequestHandler):
 		retVal = {}
 		retVal["success"] = True
 		retVal["message"] = "OK"
+		retVal["version"] = "%s (%s)" % (platform.python_version(), platform.python_implementation())
 		add_if_exists(retVal, "platform.machine()", platform.machine())
 		add_if_exists(retVal, "platform.node()", platform.node())
 		#IOError: add_if_exists(retVal, "platform.platform()", platform.platform())
@@ -122,7 +123,7 @@ class TestPage(webapp2.RequestHandler):
 
 
 		html = []
-		html.append('<table class="table table-bordered table-striped bordered-table zebra-striped" style="width:auto;">\n')
+		html.append('<table class="table table-bordered table-striped" style="width:auto;">\n')
 		html.append('\t<tbody>\n')
 
 		html.append('\t\t<tr>\n')
@@ -161,7 +162,30 @@ class TestPage(webapp2.RequestHandler):
 		html.append('</td>\n')
 		html.append('\t\t</tr>\n')
 
-		pattern = re.compile(regex, flags)
+		if len(options) > 0:
+			html.append('\t\t<tr>\n')
+			html.append('\t\t\t<td>')
+			html.append('flags (as constants)')
+			html.append('</td>\n')
+			html.append('\t\t\t<td>')
+			html.append(cgi.escape("|".join(flagList)))
+			html.append('</td>\n')
+			html.append('\t\t</tr>\n')
+
+		try:
+			pattern = re.compile(regex, flags)
+		except Exception as e:
+			html.append('\t\t<tr>\n')
+			html.append('\t\t\t<td>')
+			html.append('Exception')
+			html.append('</td>\n')
+			html.append('\t\t\t<td>')
+			html.append(cgi.escape(str(e)))
+			html.append('</td>\n')
+			html.append('\t\t</tr>\n')
+			html.append('\t</tbody>\n')
+			html.append('</table>\n')
+			return json.dumps({"success": False, "message": "re.compile() Exception:" + str(e), "html": "".join(html)})
 
 		if len(options) > 0:
 			html.append('\t\t<tr>\n')
@@ -170,15 +194,6 @@ class TestPage(webapp2.RequestHandler):
 			html.append('</td>\n')
 			html.append('\t\t\t<td>')
 			html.append(str(pattern.flags))
-			html.append('</td>\n')
-			html.append('\t\t</tr>\n')
-
-			html.append('\t\t<tr>\n')
-			html.append('\t\t\t<td>')
-			html.append('flags (as constants)')
-			html.append('</td>\n')
-			html.append('\t\t\t<td>')
-			html.append(cgi.escape("|".join(flagList)))
 			html.append('</td>\n')
 			html.append('\t\t</tr>\n')
 
@@ -203,7 +218,7 @@ class TestPage(webapp2.RequestHandler):
 		html.append('\t</tbody>\n')
 		html.append('</table>\n')
 
-		html.append('<table class="table table-bordered table-striped bordered-table zebra-striped">\n')
+		html.append('<table class="table table-bordered table-striped">\n')
 		html.append('\t<thead>\n')
 		html.append('\t\t<tr>\n')
 		html.append('\t\t\t<th style="text-align:center;">Test</th>\n')
