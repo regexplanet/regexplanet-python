@@ -4,7 +4,9 @@
 #
 
 import cgi
+import datetime
 import json
+import os
 import platform
 import re
 import sysconfig
@@ -21,6 +23,10 @@ class StatusPage(webapp2.RequestHandler):
 		retVal = {}
 		retVal["success"] = True
 		retVal["message"] = "OK"
+		retVal["commit"] = os.environ["COMMIT"] if "COMMIT" in os.environ else "dev"
+		retVal["timestamp"] = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+		retVal["lastmod"] = os.environ["LASTMOD"] if "LASTMOD" in os.environ else "dev"
+		retVal["tech"] = "Python %d.%d.%d" % (sys.version_info.major, sys.version_info.minor, sys.version_info.micro)
 		retVal["version"] = "%s (%s)" % (platform.python_version(), platform.python_implementation())
 		add_if_exists(retVal, "platform.machine()", platform.machine())
 		add_if_exists(retVal, "platform.node()", platform.node())
@@ -51,6 +57,9 @@ class StatusPage(webapp2.RequestHandler):
 
 		callback = self.request.get('callback')
 		if len(callback) == 0 or re.match("[a-zA-Z][-a-zA-Z0-9_]*$", callback) is None:
+			self.response.headers['Access-Control-Allow-Origin'] = '*'
+			self.response.headers['Access-Control-Allow-Methods'] = 'POST, GET'
+			self.response.headers['Access-Control-Max-Age'] = '604800' # 1 week
 			self.response.out.write(json.dumps(retVal, separators=(',', ':')))
 		else:
 			self.response.out.write(callback)
